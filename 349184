@@ -1,0 +1,55 @@
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+pd.pandas.set_option('display.max_columns', None)
+data_set = pd.read_csv('C:/Users/Admin/Documents/StockPredictingNews.csv', encoding='ISO-8859-1')
+data_set.drop('Date', axis=1, inplace=True)
+ind = np.array([i for i in range(0, len(data_set))])
+ind = pd.Series(ind, name='Index')
+data_set = pd.concat([ind, data_set], axis=1)
+print(data_set.tail(10))
+
+
+train = data_set[data_set['Index'] < 3300]
+test = data_set[data_set['Index'] >= 3300]
+
+# removing puntuations
+data = train.iloc[:, 2:27]
+data.replace('[^a-zA-Z]', ' ', regex=True, inplace=True)
+list = [i for i in range(25)]
+new_index = [str(i) for i in list]
+data.columns = new_index
+
+
+for index in new_index:
+    data[index] = data[index].str.lower()
+
+
+headlines = []
+for row in range(0, len(data.index)):
+    headlines.append(' '.join(str(x) for x in data.iloc[1, 0:25]))
+
+cv = CountVectorizer(ngram_range=(2, 2))
+train_data_set = cv.fit_transform(headlines)
+forest = MultinomialNB()
+#RandomForestClassifier(n_estimators=200, criterion='entropy')
+forest.fit(train_data_set, train['Label'])
+
+
+test_headlines = []
+for row in range(0, len(test.index)):
+    test_headlines.append(' '.join(str(x) for x in data.iloc[1, 0:25]))
+
+#cv = CountVectorizer(ngram_range=(2, 2))
+test_data_set = cv.transform(test_headlines)
+y_pred = forest.predict(test_data_set)
+matrix = confusion_matrix(test['Label'], y_pred)
+print(matrix)
+report = classification_report(test['Label'], y_pred)
+print(report)
+accuracy = accuracy_score(test['Label'], y_pred)
+print(accuracy)
